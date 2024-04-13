@@ -51,7 +51,7 @@ Method RavenDbGetById(id As %String) As %DynamicObject
 }
 
 /// Get FHIR Patient for the specified dbPatient
-Method CreatePatientFromDB(dbPatient As %DynamicObject) As %DynamicObject
+Method CreatePatientFromDB1(dbPatient As %DynamicObject) As %DynamicObject
 {
 	set patient = {
 		"resourceType": "Patient",
@@ -64,20 +64,14 @@ Method CreatePatientFromDB(dbPatient As %DynamicObject) As %DynamicObject
 				"given": [ (dbPatient.Name.First) ],
 				"family": (dbPatient.Name.Last)
 			}
-		],
-		"telecom": (..GetTelecoms(dbPatient))
+		]
 	}
-
-	return patient
-}
-
-/// Get telecoms from RavenDB Patient document
-Method GetTelecoms(dbPatient As %DynamicObject) As %DynamicArray
-{
-	#dim telecoms as %DynamicArray = []
 
 	if $ISOBJECT(dbPatient.Telecoms)
 	{
+		#dim telecoms as %DynamicArray = []
+		set patient.telecom = telecoms
+
 		for index = 1:1:dbPatient.Telecoms.%Size()
 		{
 			#dim telecom as %DynamicObject = dbPatient.Telecoms.%Get(index - 1)
@@ -89,7 +83,51 @@ Method GetTelecoms(dbPatient As %DynamicObject) As %DynamicArray
 		}
 	}
 
-	return telecoms
+	return patient
+}
+
+/// Get FHIR Patient for the specified dbPatient
+Method CreatePatientFromDB(dbPatient As %DynamicObject) As %DynamicObject
+{
+	set patient = ##class(HS.FHIRModel.R4.Patient).%New()
+	set patient.fhirID = dbPatient."@metadata"."@id"
+	do patient.IncludeMeta()
+	set patient.meta.lastUpdated = dbPatient."@metadata"."@last-modified"
+	do patient.IncludeName()
+	do patient.name.add(..GetPatientName(dbPatient))
+	do ..GetTelecoms(patient, dbPatient)
+
+	return patient.toDao()
+}
+
+/// Get Patient Name
+ClassMethod GetPatientName(dbPatient As %DynamicObject) As HS.FHIRModel.R4.HumanName
+{
+	set name = ##class(HS.FHIRModel.R4.HumanName).%New()
+	do name.IncludeGiven()
+	do name.given.add(dbPatient.Name.First)
+	set name.family = dbPatient.Name.Last
+
+	return name
+}
+
+/// Get telecoms from RavenDB Patient document
+Method GetTelecoms(patient As HS.FHIRModel.R4.Patient, dbPatient As %DynamicObject)
+{
+	if $ISOBJECT(dbPatient.Telecoms)
+	{
+		do patient.IncludeTelecom()
+
+		for index = 1:1:dbPatient.Telecoms.%Size()
+		{
+			#dim telecom as %DynamicObject = dbPatient.Telecoms.%Get(index - 1)
+			set contactPoint = ##class(HS.FHIRModel.R4.ContactPoint).%New()
+			set contactPoint.system = telecom.use
+			set contactPoint.value = telecom.value
+
+			do patient.telecom.add(contactPoint)
+		}
+	}
 }
 
 ///  Search is supported on _id
