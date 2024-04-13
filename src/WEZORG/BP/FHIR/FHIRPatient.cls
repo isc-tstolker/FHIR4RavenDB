@@ -94,21 +94,16 @@ Method CreatePatientFromDB(dbPatient As %DynamicObject) As %DynamicObject
 	do patient.IncludeMeta()
 	set patient.meta.lastUpdated = dbPatient."@metadata"."@last-modified"
 	do patient.IncludeName()
-	do patient.name.add(..GetPatientName(dbPatient))
-	do ..GetTelecoms(patient, dbPatient)
 
-	return patient.toDao()
-}
-
-/// Get Patient Name
-ClassMethod GetPatientName(dbPatient As %DynamicObject) As HS.FHIRModel.R4.HumanName
-{
 	set name = ##class(HS.FHIRModel.R4.HumanName).%New()
 	do name.IncludeGiven()
 	do name.given.add(dbPatient.Name.First)
 	set name.family = dbPatient.Name.Last
+	do patient.name.add(name)
 
-	return name
+	do ..GetTelecoms(patient, dbPatient)
+
+	return patient.toDao()
 }
 
 /// Get telecoms from RavenDB Patient document
@@ -228,7 +223,7 @@ Method HandlePatientSearch(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pResp
 }
 
 /// Query RavenDB
-Method RavenDbQuery(query As %String = "from '@empty'") As %DynamicObject
+Method RavenDbQuery(query As %String = "from @all_docs") As %DynamicObject
 {
 	set request = ##class(WEZORG.Msg.RavenDB.QueryRequest).%New()
 	set request.pathdb = "wezorg"
