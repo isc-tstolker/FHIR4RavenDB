@@ -2,6 +2,7 @@
 Class WEZORG.Model.RavenDBQuery Extends (%SerialObject, %JSON.Adaptor, %XML.Adaptor) [ Inheritance = left, ProcedureBlock ]
 {
 
+/// RavenDB Query
 Property Query As %String(MAXLEN = "");
 
 Storage Default

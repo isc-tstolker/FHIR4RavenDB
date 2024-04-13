@@ -6,11 +6,18 @@ Parameter ADAPTER = "EnsLib.HTTP.OutboundAdapter";
 
 Property Adapter As EnsLib.HTTP.OutboundAdapter;
 
-/// POST /databases/{db}/queries"
+/// POST /databases/{db}/queries
 Method Query(requestMessage As WEZORG.Msg.RavenDB.QueryRequest, Output responseMessage As WEZORG.Msg.RavenDB.QueryResponse) As %Status
 {
 	set responseMessage = ##class(WEZORG.Msg.RavenDB.QueryResponse).%New()
-	return ..zzHandleRequest(requestMessage, "Query", "POST", responseMessage)
+	return ..zzHandleRequest(requestMessage, "Query", requestMessage.#METHOD, responseMessage)
+}
+
+/// GET /databases/{db}/docs?id={id}
+Method GetDocument(requestMessage As WEZORG.Msg.RavenDB.GetDocumentRequest, Output responseMessage As WEZORG.Msg.RavenDB.QueryResponse) As %Status
+{
+	set responseMessage = ##class(WEZORG.Msg.RavenDB.QueryResponse).%New()
+	return ..zzHandleRequest(requestMessage, "GetDocument", requestMessage.#METHOD, responseMessage)
 }
 
 /// Common request handler
@@ -37,6 +44,9 @@ XData MessageMap
 <MapItems>
 	<MapItem MessageType="WEZORG.Msg.RavenDB.QueryRequest">
 		<Method>Query</Method>
+	</MapItem>
+	<MapItem MessageType="WEZORG.Msg.RavenDB.GetDocumentRequest">
+		<Method>GetDocument</Method>
 	</MapItem>
 </MapItems>
 }

@@ -21,14 +21,33 @@ Method HandlePatientGet(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pRespons
 Method HandlePatientRead(resourceType As %String, resourceId As %String) As %DynamicObject
 {
 	// Get Patient from RavenDB
-	set dbPatient = "" 
-	
-	if dbPatient = ""
+	set result = ..RavenDbGetById(resourceId)
+	set dbPatient = ""
+
+	if $ISOBJECT(result)
+	{
+		set dbPatient = result.Results.%Get(0)		
+	}
+
+	if '$ISOBJECT(dbPatient)
 	{
 		$$$ThrowFHIR($$$HSFHIRErrResourceNotFound, resourceType, resourceId, $$$OutcomeInvalid(404))
 	}
 
 	return ..CreatePatientFromDB(dbPatient)
+}
+
+/// Query RavenDB
+Method RavenDbGetById(id As %String) As %DynamicObject
+{
+	set request = ##class(WEZORG.Msg.RavenDB.GetDocumentRequest).%New()
+	set request.pathdb = "wezorg"
+	set request.queryid = id
+
+	$$$ThrowOnError(..SendRequestSync(..RavenDB, request, .response))
+
+	#dim response as WEZORG.Msg.RavenDB.QueryResponse
+	return response.Result()
 }
 
 /// Get FHIR Patient for the specified dbPatient
@@ -55,11 +74,25 @@ Method CreatePatientFromDB(dbPatient As %DynamicObject) As %DynamicObject
 /// Get telecoms from RavenDB Patient document
 Method GetTelecoms(dbPatient As %DynamicObject) As %DynamicArray
 {
-	return []
+	#dim telecoms as %DynamicArray = []
+
+	if $ISOBJECT(dbPatient.Telecoms)
+	{
+		for index = 1:1:dbPatient.Telecoms.%Size()
+		{
+			#dim telecom as %DynamicObject = dbPatient.Telecoms.%Get(index - 1)
+
+			do telecoms.%Push({
+				"system": (telecom.use),
+				"value": (telecom.value)
+			})
+		}
+	}
+
+	return telecoms
 }
 
-///  Search is supported on _id and would be nice on authored, identifier, patient/subject, status and occurrence as well
-/// _sort is supported on: authored, occurrence
+///  Search is supported on _id
 ClassMethod ProcessQueryString(queryString As %String) As %String
 {
 	set whereClause = ""
@@ -80,6 +113,28 @@ ClassMethod ProcessQueryString(queryString As %String) As %String
 /// Add to where clause
 ClassMethod AddToWhereClause(ByRef whereClause As %String, varname As %String, modifier As %String, searchValue As %String)
 {
+	set columnName =$CASE(varname, "_id":"id()", :"")
+
+	if (columnName '= "")
+	{
+		if whereClause = ""
+		{
+			set whereClause = whereClause _ " where "
+		}
+		else
+		{
+			set whereClause = whereClause _ " AND "
+		}
+
+		set whereClause = whereClause _ columnName
+
+		if (modifier = "not")
+		{
+			set whereClause = whereClause _ " not"
+		}
+
+		set whereClause = whereClause _ " in ('" _ searchValue_ "')"
+	}
 }
 
 /// HandlePatient search
@@ -113,12 +168,14 @@ Method HandlePatientSearch(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pResp
 
 	// Now get Patient from RavenDB
 
-	for orderIndex = 1:1:orders.Count()
+	#dim result as %DynamicObject = ..RavenDbQuery("from @all_docs " _  whereAndOrderByClause)
+
+	for index = 1:1:result.Results.%Size()
 	{
-		#dim dbPatient as %DynamicObject = {}
+		#dim dbPatient as %DynamicObject = result.Results.%Get(index - 1)
 
 		do entries.%Push( {
-			"fullUrl": (pRequest.Request.BaseURL _ "/" _ pRequest.ResourceType _ "/" _ dbPatient.OrderId),
+			"fullUrl": (pRequest.Request.BaseURL _ "/" _ pRequest.ResourceType _ "/" _ dbPatient."@metadata"."@id"),
 			"resource": (..CreatePatientFromDB(dbPatient))
 			} )
 	}
@@ -132,9 +189,12 @@ Method HandlePatientSearch(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pResp
 	return bundle
 }
 
-Method RavenDbQuery(query As %String) As %DynamicObject
+/// Query RavenDB
+Method RavenDbQuery(query As %String = "from '@empty'") As %DynamicObject
 {
 	set request = ##class(WEZORG.Msg.RavenDB.QueryRequest).%New()
+	set request.pathdb = "wezorg"
+	set request.Query.Query = query
 
 	$$$ThrowOnError(..SendRequestSync(..RavenDB, request, .response))
 

@@ -38,7 +38,7 @@ Method HandleMetadata(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pInteropRe
 				"mode": "server",
 				"resource": [
 					{
-						"type": "ServiceRequest",
+						"type": "Patient",
 						"versioning": "no-version",
 						"readHistory": false,
 						"updateCreate": false,
@@ -49,45 +49,45 @@ Method HandleMetadata(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pInteropRe
 							{
 								"code": "read"
 							},
-							{
-								"code": "create"
-							},
-							{
-								"code": "update"
-							},
-							{
-								"code": "delete"
-							},
+							#; {
+							#; 	"code": "create"
+							#; },
+							#; {
+							#; 	"code": "update"
+							#; },
+							#; {
+							#; 	"code": "delete"
+							#; },
 							{
 								"code": "search-type"
 							}
-						],
-						"searchParam": [
-							{
-								"name": "identifier",
-								"type": "token"
-							},
-							{
-								"name": "authored",
-								"type": "date"
-							},
-							{
-								"name": "occurrence",
-								"type": "date"
-							},
-							{
-								"name": "patient",
-								"type": "reference"
-							},
-							{
-								"name": "status",
-								"type": "token"
-							},
-							{
-								"name": "subject",
-								"type": "reference"
-							}
 						]
+						#; ,"searchParam": [
+							#; {
+							#; 	"name": "identifier",
+							#; 	"type": "token"
+							#; },
+							#; {
+							#; 	"name": "authored",
+							#; 	"type": "date"
+							#; },
+							#; {
+							#; 	"name": "occurrence",
+							#; 	"type": "date"
+							#; },
+							#; {
+							#; 	"name": "patient",
+							#; 	"type": "reference"
+							#; },
+							#; {
+							#; 	"name": "status",
+							#; 	"type": "token"
+							#; },
+							#; {
+							#; 	"name": "subject",
+							#; 	"type": "reference"
+							#; }
+						#; ]
 					}
 				],
 				"searchParam": [
