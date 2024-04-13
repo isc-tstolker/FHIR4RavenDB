@@ -12,13 +12,13 @@ Method HandleMetadata(pRequest As WEZORG.Msg.LocalFHIRInteropRequest, pInteropRe
 			"lastUpdated": "2023-02-15T16:45:00+01:00",
 			"versionId": "4"
 		},
-		"url": "https://enose-company.com/fhir/CapabilityStatement/WEZORG",
+		"url": "https://wezorg.com/fhir/r4/CapabilityStatement/WEZORG",
 		"version": "1",
 		"name": "WEZORG FHIR API",
 		"status": "active",
 		"experimental": false,
 		"date": "2023-02-15T16:43:00+01:00",
-		"publisher": "eNose Company",
+		"publisher": "WEZORG Company",
 		"kind": "instance",
 		"software": {
 			"name": "WEZORG based on InterSystems IRIS for Health",
